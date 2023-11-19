@@ -1,0 +1,8 @@
+APPOINTMENT_INDEX_NAME = "appointment_index"
+AVAILABILITY_INDEX_NAME = "availability_index"
+BOOKING_INDEX_NAME = "booking_index"
+PATIENT_INDEX_NAME = "patient_index"
+PRACTICE_INDEX_NAME = "practice_index"
+PRESCRIPTION_INDEX_NAME = "prescription_index"
+STAFF_INDEX_NAME = "staff_index"
+USER_INDEX_NAME = "user_index"

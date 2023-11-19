@@ -1,0 +1,200 @@
+version: "3.9"
+services:
+  customer-webapp:
+    restart: always
+    build:
+      context: .
+      dockerfile: infrastructure/customer-webapp/Dockerfile
+    extends:
+      file: base.yml
+      service: base
+    command: >
+      sh -c "yarn install && npm run dev"
+    depends_on:
+      - celery-worker
+      - flower
+      - rest-api
+    volumes:
+      - /usr/src/app/node_modules
+      - ./web-app/customer:/usr/src/app
+    networks:
+      - django
+    ports:
+      - "3000:3000"
+  staff-webapp:
+    restart: always
+    build:
+      context: .
+      dockerfile: infrastructure/staff-webapp/Dockerfile
+    extends:
+      file: base.yml
+      service: base
+    command: >
+      sh -c "yarn install && npm run dev"
+    depends_on:
+      - celery-worker
+      - flower
+      - rest-api
+    volumes:
+      - /usr/src/app/node_modules
+      - ./web-app/staff:/usr/src/app
+    networks:
+      - django
+    ports:
+      - "3001:3000"
+  internal-webapp:
+    restart: always
+    build:
+      context: .
+      dockerfile: infrastructure/internal-webapp/Dockerfile
+    extends:
+      file: base.yml
+      service: base
+    command: >
+      sh -c "yarn install && npm run dev"
+    depends_on:
+      - celery-worker
+      - flower
+      - rest-api
+    volumes:
+      - /usr/src/app/node_modules
+      - ./web-app/internal:/usr/src/app
+    networks:
+      - django
+    ports:
+      - "3002:3000"
+  flower:
+    restart: always
+    build:
+      context: .
+      dockerfile: infrastructure/celery-flower/Dockerfile
+    extends:
+      file: base.yml
+      service: base
+    volumes:
+      - ./api/django_project:/usr/src/app/django
+    depends_on:
+      - postgres
+      - redis
+      - pgadmin
+      - rabbitmq
+      - elastic
+    networks:
+      - django
+    ports:
+      - "5555:5555"
+  rest-api:
+    restart: always
+    build:
+      context: .
+      dockerfile: infrastructure/rest-api/Dockerfile
+    extends:
+      file: base.yml
+      service: base
+    depends_on:
+      - celery-worker
+      - flower
+      - rabbitmq
+    volumes:
+      - ./api/django_project:/usr/src/app/django
+    networks:
+      - django
+    ports:
+      - "8000:8000"
+      - "8069:8069"
+  celery-worker:
+    restart: always
+    build:
+      context: .
+      dockerfile: infrastructure/celery-worker/Dockerfile
+    extends:
+      file: base.yml
+      service: base
+    volumes:
+      - ./api/django_project:/usr/src/app/django
+    depends_on:
+      - postgres
+      - redis
+      - pgadmin
+      - rabbitmq
+      - elastic
+    networks:
+      - django
+  redis:
+    image: "redis:alpine"
+    networks:
+      - django
+  postgres:
+    container_name: postgres_container
+    image: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      PGDATA: /data/postgres
+    volumes:
+      - postgres:/data/postgres
+      - ./infrastructure/init_dev_db.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - django
+    restart: unless-stopped
+  pgadmin:
+    container_name: pgadmin_container
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    networks:
+      - django
+    restart: unless-stopped
+    depends_on:
+      - postgres
+  elastic:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.5.0
+    container_name: elasticsearch
+    environment:
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+      - 9300:9300
+    networks:
+      - django
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: "rabbitmq"
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - rabbitmq:/var/lib/rabbitmq/
+      - rabbitmq:/var/log/rabbitmq
+    networks:
+      - django
+
+networks:
+  django:
+    driver: bridge
+
+volumes:
+  postgres:
+  pgadmin:
+  elasticsearch-data:
+  rabbitmq:

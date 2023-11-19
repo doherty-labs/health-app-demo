@@ -1,0 +1,8 @@
+*.pyc
+dump.rdb
+*.log
+.DS_Store
+.idea/
+static/
+.mypy_cache
+staticfiles/

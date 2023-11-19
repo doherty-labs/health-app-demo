@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rest-api-deployment
+  namespace: default
+  labels:
+    app: rest-api-app
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: rest-api-app
+  template:
+    metadata:
+      labels:
+        app: rest-api-app
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    spec:
+      volumes:
+        - name: rest-api-logs
+          hostPath:
+            path: /var/logs/rest-api/
+      terminationGracePeriodSeconds: 60
+      nodeSelector:
+        nodeType: general-purpose
+      imagePullSecrets:
+        - name: docker-cfg
+      containers:
+        - name: rest-api-docker-image
+          image: DOCKER_REGISTRY_URL:DOCKER_VERSION
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: rest-api-logs
+              mountPath: /logs/
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "100M"
+            limits:
+              cpu: "500m"
+              memory: "1000M"
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /admin/login/?next=/admin/
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          livenessProbe:
+            httpGet:
+              path: /admin/login/?next=/admin/
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 120
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rest-api-load-balancer
+spec:
+  selector:
+    app: rest-api-app
+  ports:
+    - port: 80
+      name: http
+      targetPort: 8000
+    - port: 443
+      name: https
+      targetPort: 8000
+  type: LoadBalancer
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-ingress
+  annotations:
+    cert-manager.io/issuer: "cloudflare-cluster-issuer"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.gpbase.co.uk
+      secretName: cloudflare-cluster-issuer
+  rules:
+    - host: api.gpbase.co.uk
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: rest-api-load-balancer
+                port:
+                  number: 80

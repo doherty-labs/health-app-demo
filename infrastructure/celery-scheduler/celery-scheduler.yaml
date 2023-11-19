@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-scheduler-deployment
+  namespace: default
+  labels:
+    app: celery-scheduler-app
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: celery-scheduler-app
+  template:
+    metadata:
+      labels:
+        app: celery-scheduler-app
+    spec:
+      volumes:
+        - name: celery-logs
+          hostPath:
+            path: /var/logs/celery-worker/
+      terminationGracePeriodSeconds: 3600
+      nodeSelector:
+        nodeType: general-purpose
+      imagePullSecrets:
+        - name: docker-cfg
+      containers:
+        - name: celery-scheduler-docker-image
+          image: DOCKER_REGISTRY_URL:DOCKER_VERSION
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: celery-logs
+              mountPath: /logs/
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "500M"
+            limits:
+              cpu: "500m"
+              memory: "1000M"
+          readinessProbe:
+            exec:
+              command: ["python", "django_project/celery_readiness.py"]
+            initialDelaySeconds: 120
+            periodSeconds: 300
+          livenessProbe:
+            exec:
+              command: ["python", "django_project/celery_beat_liveness.py"]
+            initialDelaySeconds: 120
+            periodSeconds: 300

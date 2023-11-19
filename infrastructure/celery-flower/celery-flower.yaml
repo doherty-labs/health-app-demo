@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-flower-deployment
+  namespace: default
+  labels:
+    app: celery-flower-app
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: celery-flower-app
+  template:
+    metadata:
+      labels:
+        app: celery-flower-app
+    spec:
+      terminationGracePeriodSeconds: 3800
+      nodeSelector:
+        nodeType: general-purpose
+      imagePullSecrets:
+        - name: docker-cfg
+      containers:
+        - name: celery-flower-image
+          image: DOCKER_REGISTRY_URL:DOCKER_VERSION
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "100M"
+            limits:
+              cpu: "150m"
+              memory: "200M"
+          ports:
+            - containerPort: 5555
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: celery-flower-load-balancer
+spec:
+  selector:
+    app: celery-flower-app
+  ports:
+    - port: 80
+      name: http
+      targetPort: 5555
+    - port: 443
+      name: https
+      targetPort: 5555
+  type: LoadBalancer
