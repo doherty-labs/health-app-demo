@@ -1,4 +1,5 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
+import { withApiAuthRequired } from "@auth0/nextjs-auth0";
+import { withApiRouteToken } from "../../../components/auth0-utils";
 
 export const getStaff = async (accessToken: string, urlParams: string) => {
   const baseURL =
@@ -15,14 +16,14 @@ export const getStaff = async (accessToken: string, urlParams: string) => {
   return { request, data };
 };
 
-export default withApiAuthRequired(async function products(req, res) {
-  const { accessToken } = await getAccessToken(req, res);
-  const token: string = accessToken || "";
-  if (req.method === "GET") {
-    const { request, data } = await getStaff(
-      token,
-      new URLSearchParams(req.query as any).toString(),
-    );
-    res.status(request.status).json(data);
-  }
-});
+export default withApiAuthRequired(
+  withApiRouteToken(async function products(req, res, token) {
+    if (req.method === "GET") {
+      const { request, data } = await getStaff(
+        token,
+        new URLSearchParams(req.query as any).toString(),
+      );
+      res.status(request.status).json(data);
+    }
+  }),
+);

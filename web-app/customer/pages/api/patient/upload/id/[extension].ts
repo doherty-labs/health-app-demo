@@ -1,4 +1,5 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
+import { withApiAuthRequired } from "@auth0/nextjs-auth0";
+import { withApiRouteToken } from "../../../../../components/auth0-utils";
 
 export const getPatientUploadId = async (accessToken: string, ext: string) => {
   const baseURL = process.env.NEXT_PUBLIC_API_URL + `patient/upload/id/${ext}`;
@@ -14,10 +15,10 @@ export const getPatientUploadId = async (accessToken: string, ext: string) => {
   return { request, data };
 };
 
-export default withApiAuthRequired(async function products(req, res) {
-  const { accessToken } = await getAccessToken(req, res);
-  const token: string = accessToken || "";
-  const extension: string = (req.query.extension as string) || "";
-  const { request, data } = await getPatientUploadId(token, extension);
-  res.status(request.status).json(data);
-});
+export default withApiAuthRequired(
+  withApiRouteToken(async function products(req, res, token) {
+    const extension: string = (req.query.extension as string) || "";
+    const { request, data } = await getPatientUploadId(token, extension);
+    res.status(request.status).json(data);
+  }),
+);

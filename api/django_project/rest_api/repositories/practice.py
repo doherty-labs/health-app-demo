@@ -559,7 +559,12 @@ class PracticeRepo(CommonModelRepo[PracticeSummarySchema]):
 
     def recreate_index(self) -> None:
         queryset = PracticeModel.objects.all()
+        docs: list[PracticeSummarySchema] = []
+        chunk_size = 2500
         with ElasticMigration(self.elastic_service):
             for practice in queryset:
                 result = self.get(id=practice.id)
-                self.elastic_service.add(id=practice.id, doc_data=result)
+                docs.append(result)
+                if len(docs) == chunk_size:
+                    self.elastic_service.bulk_add_docs(docs)
+                    docs = []

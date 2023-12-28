@@ -1,5 +1,5 @@
 import type { NextPageWithLayout } from "../../_app";
-import { withPageAuthRequired, getAccessToken } from "@auth0/nextjs-auth0";
+import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 import Layout from "../../../components/layout";
 import { ReactElement } from "react";
 import Head from "next/head";
@@ -11,6 +11,7 @@ import { components } from "../../../schemas/api-types";
 import { useLoading } from "../../../components/state/loading";
 import { useRouter } from "next/router";
 import axios, { AxiosResponse } from "axios";
+import { withPageToken } from "../../../components/auth0-utils";
 type PracticeType = components["schemas"]["Practice"];
 type BookingType = components["schemas"]["Appointment"];
 interface Props extends PracticeType {}
@@ -62,21 +63,8 @@ BookAptPage.getLayout = function getLayout(page: ReactElement) {
 };
 
 export const getServerSideProps = withPageAuthRequired({
-  getServerSideProps: async (ctx) => {
-    let token: string = "";
+  getServerSideProps: withPageToken(async (ctx, token) => {
     const slug = ctx.query.slug as string;
-    try {
-      const { accessToken } = await getAccessToken(ctx.req, ctx.res);
-      token = accessToken as string;
-    } catch (e) {
-      return {
-        redirect: {
-          destination: `/api/auth/login?returnTo=/practice/${slug}/book`,
-          permanent: false,
-        },
-      };
-    }
-
     const { data } = await getPracticeBySlug(slug);
 
     if (!data.id) {
@@ -100,7 +88,7 @@ export const getServerSideProps = withPageAuthRequired({
         pageTitle,
       },
     };
-  },
+  }),
 });
 
 export default BookAptPage;

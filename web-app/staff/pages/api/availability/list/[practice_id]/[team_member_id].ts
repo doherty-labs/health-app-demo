@@ -1,4 +1,5 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
+import { withApiAuthRequired } from "@auth0/nextjs-auth0";
+import { withApiRouteToken } from "../../../../../components/auth0-utils";
 
 export const getAllAvailability = async (
   accessToken: string,
@@ -22,16 +23,16 @@ export const getAllAvailability = async (
   return { request, data };
 };
 
-export default withApiAuthRequired(async function products(req, res) {
-  const { accessToken } = await getAccessToken(req, res);
-  const practiceId: string = (req.query.practice_id as string) || "";
-  const teamMemberId: string = (req.query.team_member_id as string) || "";
-  const token: string = accessToken || "";
-  const { request, data } = await getAllAvailability(
-    token,
-    new URLSearchParams(req.query as any).toString(),
-    practiceId,
-    teamMemberId,
-  );
-  res.status(request.status).json(data);
-});
+export default withApiAuthRequired(
+  withApiRouteToken(async function products(req, res, token) {
+    const practiceId: string = (req.query.practice_id as string) || "";
+    const teamMemberId: string = (req.query.team_member_id as string) || "";
+    const { request, data } = await getAllAvailability(
+      token,
+      new URLSearchParams(req.query as any).toString(),
+      practiceId,
+      teamMemberId,
+    );
+    res.status(request.status).json(data);
+  }),
+);

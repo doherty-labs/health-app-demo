@@ -193,10 +193,15 @@ class BookingRepo(CommonModelRepo[BookingSchema]):
 
     def recreate_index(self) -> None:
         queryset = BookingModel.objects.all()
+        docs: list[BookingSchema] = []
+        chunk_size = 2500
         with ElasticMigration(self.elastic_service):
             for booking in queryset:
                 result = self.get(id=booking.id)
-                self.elastic_service.add(id=booking.id, doc_data=result)
+                docs.append(result)
+                if len(docs) >= chunk_size:
+                    self.elastic_service.bulk_add_docs(docs)
+                    docs = []
 
     def search(
         self,

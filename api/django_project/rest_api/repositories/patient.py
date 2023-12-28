@@ -325,10 +325,15 @@ class PatientRepo(CommonModelRepo[PatientSchema]):
 
     def recreate_index(self) -> None:
         queryset = PatientModel.objects.all()
+        docs: list[PatientSchema] = []
+        chunk_size = 2500
         with ElasticMigration(self.elastic_service):
             for patient in queryset:
                 result = self.get(id=patient.id)
-                self.elastic_service.add(id=patient.id, doc_data=result)
+                docs.append(result)
+                if len(docs) == chunk_size:
+                    self.elastic_service.bulk_add_docs(docs)
+                    docs = []
 
     @atomic
     def create_upload_id_card(self, patient_id: int, extension: str) -> str:

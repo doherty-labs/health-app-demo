@@ -156,10 +156,15 @@ class StaffRepo(CommonModelRepo[StaffMemberSchema]):
 
     def recreate_index(self) -> None:
         queryset = StaffModel.objects.all()
+        docs: list[StaffMemberSchema] = []
+        chunk_size = 2500
         with ElasticMigration(self.elastic_service):
             for staff in queryset:
                 result = self.get(id=staff.id)
-                self.elastic_service.add(id=staff.id, doc_data=result)
+                docs.append(result)
+                if len(docs) == chunk_size:
+                    self.elastic_service.bulk_add_docs(docs)
+                    docs = []
 
     def check_has_onboarded(self, staff_id: int) -> bool:
         staff = self.get(staff_id)

@@ -1,5 +1,5 @@
 import type { NextPageWithLayout } from "../../_app";
-import { withPageAuthRequired, getAccessToken } from "@auth0/nextjs-auth0";
+import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 import Layout from "../../../components/layout";
 import { ReactElement, useState } from "react";
 import moment from "moment";
@@ -15,6 +15,7 @@ import { getAllAvailability } from "../../api/availability/list/[practice_id]/[t
 import _ from "lodash";
 import { useTeamAvailability } from "../../../components/hooks/team-availability";
 import { usePracticeAvailabilityEvents } from "../../../components/hooks/practice-availability";
+import { withPageToken } from "../../../components/auth0-utils";
 type PracticeType = components["schemas"]["Practice"];
 type TeamMemberType = components["schemas"]["Practice"]["team_members"][0];
 type AvailabilityType = components["schemas"]["Availability"];
@@ -152,20 +153,8 @@ TeamAvailabilityPage.getLayout = function getLayout(
 };
 
 export const getServerSideProps = withPageAuthRequired({
-  getServerSideProps: async (ctx) => {
-    let token: string = "";
+  getServerSideProps: withPageToken(async (ctx, token) => {
     const id = Number(ctx.query.id as string);
-    try {
-      const { accessToken } = await getAccessToken(ctx.req, ctx.res);
-      token = accessToken as string;
-    } catch (e) {
-      return {
-        redirect: {
-          destination: `/api/auth/login?returnTo=/availability`,
-          permanent: false,
-        },
-      };
-    }
     const { data: user } = await getStaff(token);
     if (token && user) {
       const { data } = await getPractice(user.practice_id, token);
@@ -203,7 +192,7 @@ export const getServerSideProps = withPageAuthRequired({
     return {
       props: { practice: {} },
     };
-  },
+  }),
 });
 
 export default TeamAvailabilityPage;

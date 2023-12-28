@@ -431,11 +431,26 @@ class AppointmentRepo(CommonModelRepo[AppointmentSchema]):
         return result_drop_duplicates
 
     def recreate_index(self) -> None:
+        """
+        This method is used to recreate the index from the database.
+        TODO: Parrallelize this method with celery.
+
+        Beginning of celery task, create lock
+        Create array of chunks
+        Each chunk triggers a celery task to index the chunk
+        End of all tasks, trigger index refresh and removes lock
+
+        """
         queryset = AppointmentModel.objects.all()
+        docs: list[AppointmentSchema] = []
+        chunk_size = 2500
         with ElasticMigration(self.elastic_service):
             for apt in queryset:
                 p = self.get(id=apt.id)
-                self.elastic_service.add(id=apt.id, doc_data=p)
+                docs.append(p)
+                if len(docs) == chunk_size:
+                    self.elastic_service.bulk_add_docs(docs)
+                    docs = []
 
     def update_index_by_patient_id(self, patient_id: int) -> None:
         queryset = AppointmentModel.objects.filter(patient_id=patient_id)

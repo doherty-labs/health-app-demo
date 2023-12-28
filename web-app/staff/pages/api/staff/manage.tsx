@@ -1,4 +1,5 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
+import { withApiAuthRequired } from "@auth0/nextjs-auth0";
+import { withApiRouteToken } from "../../../components/auth0-utils";
 
 export const createStaff = async (body: any, accessToken: string) => {
   const baseURL = process.env.NEXT_PUBLIC_API_URL + `staff/user`;
@@ -44,24 +45,23 @@ export const updateStaff = async (body: any, accessToken: string) => {
   return { request, data };
 };
 
-export default withApiAuthRequired(async function products(req, res) {
-  const { accessToken } = await getAccessToken(req, res);
-  const id: string = (req.query.id as string) || "";
-  const token: string = accessToken || "";
-  if (req.method === "PUT") {
-    const { request, data } = await updateStaff(
-      JSON.stringify(req.body),
-      token,
-    );
-    res.status(request.status).json(data);
-  } else if (req.method === "GET") {
-    const { request, data } = await getStaff(token);
-    res.status(request.status).json(data);
-  } else if (req.method === "POST") {
-    const { request, data } = await createStaff(
-      JSON.stringify(req.body),
-      token,
-    );
-    res.status(request.status).json(data);
-  }
-});
+export default withApiAuthRequired(
+  withApiRouteToken(async function products(req, res, token) {
+    if (req.method === "PUT") {
+      const { request, data } = await updateStaff(
+        JSON.stringify(req.body),
+        token,
+      );
+      res.status(request.status).json(data);
+    } else if (req.method === "GET") {
+      const { request, data } = await getStaff(token);
+      res.status(request.status).json(data);
+    } else if (req.method === "POST") {
+      const { request, data } = await createStaff(
+        JSON.stringify(req.body),
+        token,
+      );
+      res.status(request.status).json(data);
+    }
+  }),
+);

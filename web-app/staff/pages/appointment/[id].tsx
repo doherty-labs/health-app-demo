@@ -1,5 +1,5 @@
 import type { NextPageWithLayout } from "../_app";
-import { withPageAuthRequired, getAccessToken } from "@auth0/nextjs-auth0";
+import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 import Layout from "../../components/layout";
 import { ReactElement, useEffect, useState } from "react";
 import { getAppointment } from "../api/appointment/[id]";
@@ -14,7 +14,7 @@ import { useRouter } from "next/router";
 import { getAppointmentStates } from "../api/states/appointment";
 import { useToast } from "@chakra-ui/react";
 import { getBookingOptions } from "../api/booking/search";
-import { set } from "lodash";
+import { withPageToken } from "../../components/auth0-utils";
 type AppointmentType = components["schemas"]["Appointment"];
 type StaffApiType = components["schemas"]["StaffMember"];
 type StatesType = components["schemas"]["States"]["states"][0];
@@ -273,21 +273,8 @@ AppointmentGetPage.getLayout = function getLayout(page: ReactElement) {
 };
 
 export const getServerSideProps = withPageAuthRequired({
-  getServerSideProps: async (ctx) => {
+  getServerSideProps: withPageToken(async (ctx, token) => {
     const id = ctx.query.id as string;
-    let token: string = "";
-    try {
-      const { accessToken } = await getAccessToken(ctx.req, ctx.res);
-      token = accessToken as string;
-    } catch (e) {
-      return {
-        redirect: {
-          destination: `/api/auth/login?returnTo=/appointment/${id}`,
-          permanent: false,
-        },
-      };
-    }
-
     const { request, data } = await getAppointment(id, token);
     const { data: statesData } = await getAppointmentStates(token);
     const { data: bookings } = await getBookingOptions(
@@ -307,7 +294,7 @@ export const getServerSideProps = withPageAuthRequired({
         bookingsInit: bookings.results,
       },
     };
-  },
+  }),
 });
 
 export default AppointmentGetPage;

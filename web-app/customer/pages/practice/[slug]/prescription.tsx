@@ -1,7 +1,7 @@
 import type { NextPageWithLayout } from "../../_app";
-import { withPageAuthRequired, getAccessToken } from "@auth0/nextjs-auth0";
+import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 import Layout from "../../../components/layout";
-import { ReactElement, useState } from "react";
+import { ReactElement } from "react";
 import Head from "next/head";
 import { Flex } from "@chakra-ui/react";
 import { getPracticeBySlug } from "../../api/practice/find/[slug]";
@@ -11,6 +11,7 @@ import { useLoading } from "../../../components/state/loading";
 import { useRouter } from "next/router";
 import axios, { AxiosResponse } from "axios";
 import { PrescriptionForm } from "../../../components/prescription/form";
+import { withPageToken } from "../../../components/auth0-utils";
 type PracticeType = components["schemas"]["Practice"];
 type PrescriptionType = components["schemas"]["Prescription"];
 interface Props extends PracticeType {}
@@ -65,21 +66,8 @@ RequestPrescriptionPage.getLayout = (page: ReactElement) => {
 };
 
 export const getServerSideProps = withPageAuthRequired({
-  getServerSideProps: async (ctx) => {
+  getServerSideProps: withPageToken(async (ctx) => {
     const slug = ctx.query.slug as string;
-    let token: string = "";
-    try {
-      const { accessToken } = await getAccessToken(ctx.req, ctx.res);
-      token = accessToken as string;
-    } catch (e) {
-      return {
-        redirect: {
-          destination: `/api/auth/login?returnTo=/practice/${slug}/prescription`,
-          permanent: false,
-        },
-      };
-    }
-
     const { data } = await getPracticeBySlug(slug);
     if (!data.id) {
       return {
@@ -102,7 +90,7 @@ export const getServerSideProps = withPageAuthRequired({
         pageTitle,
       },
     };
-  },
+  }),
 });
 
 export default RequestPrescriptionPage;

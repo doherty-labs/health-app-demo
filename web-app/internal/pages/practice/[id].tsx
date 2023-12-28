@@ -1,5 +1,5 @@
 import type { NextPageWithLayout } from "../_app";
-import { getAccessToken, withPageAuthRequired } from "@auth0/nextjs-auth0";
+import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 import Layout from "../../components/layout";
 import { ReactElement } from "react";
 import { PracticeFormScreen } from "../../components/form/practice";
@@ -27,6 +27,7 @@ import {
   Container,
   Flex,
 } from "@chakra-ui/react";
+import { withPageToken } from "../../components/auth0-utils";
 
 type PracticeType = components["schemas"]["Practice"];
 interface Props extends PracticeType {
@@ -138,21 +139,8 @@ AddPracticePage.getLayout = function getLayout(page: ReactElement, props: any) {
 };
 
 export const getServerSideProps = withPageAuthRequired({
-  getServerSideProps: async (ctx) => {
+  getServerSideProps: withPageToken(async (ctx, token) => {
     const id = ctx.query.id;
-    let token: string = "";
-    try {
-      const { accessToken } = await getAccessToken(ctx.req, ctx.res);
-      token = accessToken as string;
-    } catch (e) {
-      return {
-        redirect: {
-          destination: `/api/auth/login?returnTo=/practice/${id}`,
-          permanent: false,
-        },
-      };
-    }
-
     if (token && id) {
       const { data } = await getPractice(id as string, token);
 
@@ -181,7 +169,7 @@ export const getServerSideProps = withPageAuthRequired({
     return {
       props: {},
     };
-  },
+  }),
 });
 
 export default AddPracticePage;

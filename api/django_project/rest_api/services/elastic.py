@@ -1,8 +1,9 @@
+import json
 import uuid
 from functools import wraps
 from typing import Any, Callable, Generic, TypeVar, cast
 
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, helpers
 from injector import Inject
 from pydantic import BaseModel
 from redis import Redis
@@ -132,6 +133,7 @@ class ElasticSearchService(Generic[ElasticPydanticModel]):
         for index_name in current_index_names:
             self.es.indices.delete(index=index_name, ignore_unavailable=True)
 
+        self.refresh_index()
         self.lock.release()
 
     def handle_migration_exception(self):
@@ -222,3 +224,20 @@ class ElasticSearchService(Generic[ElasticPydanticModel]):
         return self.es.search(
             index=self.read_name, query=query, suggest=suggest, size=size, aggs=aggs
         )
+
+    def bulk_add_docs(self, documents: list[ElasticPydanticModel]) -> int:
+        actions = []
+        for doc in documents:
+            data_dict = doc.dict()
+            actions.append(
+                {
+                    "_index": self.write_name,
+                    "_op_type": "create",
+                    "_id": data_dict.get("id"),
+                    "_source": doc.dict(),
+                }
+            )
+        success_count, fails = helpers.bulk(self.es, actions)
+        if isinstance(fails, list) and len(fails) > 0:
+            raise Exception(f"Failed to bulk add docs: {json.dumps(fails)}")
+        return success_count

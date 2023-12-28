@@ -121,10 +121,15 @@ class AvailabilityRepo(CommonModelRepo[AvailableAppointmentSchema]):
 
     def recreate_index(self) -> None:
         queryset = AvailableAppointmentModel.objects.all()
+        docs: list[AvailableAppointmentSchema] = []
+        chunk_size = 2500
         with ElasticMigration(self.elastic_service):
             for avail in queryset:
                 result = self.get(id=avail.id)
-                self.elastic_service.add(id=avail.id, doc_data=result)
+                docs.append(result)
+                if len(docs) == chunk_size:
+                    self.elastic_service.bulk_add_docs(docs)
+                    docs = []
 
     def search(
         self,

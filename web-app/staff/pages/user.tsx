@@ -1,9 +1,5 @@
 import type { NextPageWithLayout } from "./_app";
-import {
-  withPageAuthRequired,
-  getSession,
-  getAccessToken,
-} from "@auth0/nextjs-auth0";
+import { withPageAuthRequired, getSession } from "@auth0/nextjs-auth0";
 import Layout from "../components/layout";
 import { ReactElement, useState } from "react";
 import { Box, Container, Stack, StackDivider, Text } from "@chakra-ui/react";
@@ -14,6 +10,7 @@ import axios, { AxiosResponse } from "axios";
 import Head from "next/head";
 import { useLoading } from "../state/loading";
 import { getStaff } from "./api/staff/manage";
+import { withPageToken } from "../components/auth0-utils";
 
 export type StaffApiType = components["schemas"]["StaffMember"];
 interface UserInfoPageProps {
@@ -122,29 +119,16 @@ UserInfoPage.getLayout = function getLayout(page: ReactElement) {
 };
 
 export const getServerSideProps = withPageAuthRequired({
-  getServerSideProps: async (ctx) => {
-    let token: string = "";
-    try {
-      const { accessToken } = await getAccessToken(ctx.req, ctx.res);
-      token = accessToken as string;
-    } catch (e) {
-      return {
-        redirect: {
-          destination: `/api/auth/login?returnTo=/user`,
-          permanent: false,
-        },
-      };
-    }
-
+  getServerSideProps: withPageToken(async (ctx, token) => {
     const sesh = await getSession(ctx.req, ctx.res);
-    const { data, request } = await getStaff(sesh?.accessToken as string);
+    const { data, request } = await getStaff(token);
     return {
       props: {
         userEmail: sesh?.user.email,
         existingStaff: request.status === 200 ? data : null,
       },
     };
-  },
+  }),
 });
 
 export default UserInfoPage;

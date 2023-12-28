@@ -1,5 +1,5 @@
 import type { NextPageWithLayout } from "./_app";
-import { withPageAuthRequired, getAccessToken } from "@auth0/nextjs-auth0";
+import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 import Layout from "../components/layout";
 import { ReactElement, useState } from "react";
 import { getAllPractices } from "./api/practice/all";
@@ -24,6 +24,7 @@ import { usePractices } from "../components/search/practice";
 import { useTableState } from "../state/table";
 import axios, { AxiosResponse } from "axios";
 import { useLoading } from "../state/loading";
+import { withPageToken } from "../components/auth0-utils";
 
 type PracticeType = components["schemas"]["Practice"];
 
@@ -184,24 +185,12 @@ AllPracticesPage.getLayout = function getLayout(page: ReactElement) {
 };
 
 export const getServerSideProps = withPageAuthRequired({
-  getServerSideProps: async (ctx) => {
-    let token: string = "";
-    try {
-      const { accessToken } = await getAccessToken(ctx.req, ctx.res);
-      token = accessToken as string;
-    } catch (e) {
-      return {
-        redirect: {
-          destination: "/api/auth/login?returnTo=/practice",
-          permanent: false,
-        },
-      };
-    }
+  getServerSideProps: withPageToken(async (ctx, token) => {
     const { data } = await getAllPractices(token, "page=1");
     return {
       props: data,
     };
-  },
+  }),
 });
 
 export default AllPracticesPage;

@@ -1,4 +1,5 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
+import { withApiAuthRequired } from "@auth0/nextjs-auth0";
+import { withApiRouteToken } from "../../../../components/auth0-utils";
 
 export const getBooking = async (id: string, accessToken: string) => {
   const baseURL = process.env.NEXT_PUBLIC_API_URL + `booking/${id}/manage`;
@@ -46,22 +47,22 @@ export const deleteBooking = async (id: string, accessToken: string) => {
   return { request };
 };
 
-export default withApiAuthRequired(async function products(req, res) {
-  const { accessToken } = await getAccessToken(req, res);
-  const id: string = (req.query.id as string) || "";
-  const token: string = accessToken || "";
-  if (req.method === "PUT") {
-    const { request, data } = await updateBooking(
-      id,
-      JSON.stringify(req.body),
-      token,
-    );
-    res.status(request.status).json(data);
-  } else if (req.method === "DELETE") {
-    const { request } = await deleteBooking(id, token);
-    res.status(request.status).json({});
-  } else if (req.method === "GET") {
-    const { request, data } = await getBooking(id, token);
-    res.status(request.status).json(data);
-  }
-});
+export default withApiAuthRequired(
+  withApiRouteToken(async function products(req, res, token) {
+    const id: string = (req.query.id as string) || "";
+    if (req.method === "PUT") {
+      const { request, data } = await updateBooking(
+        id,
+        JSON.stringify(req.body),
+        token,
+      );
+      res.status(request.status).json(data);
+    } else if (req.method === "DELETE") {
+      const { request } = await deleteBooking(id, token);
+      res.status(request.status).json({});
+    } else if (req.method === "GET") {
+      const { request, data } = await getBooking(id, token);
+      res.status(request.status).json(data);
+    }
+  }),
+);

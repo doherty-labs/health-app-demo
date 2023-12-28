@@ -1,5 +1,5 @@
 import type { NextPageWithLayout } from "../_app";
-import { withPageAuthRequired, getAccessToken } from "@auth0/nextjs-auth0";
+import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 import Layout from "../../components/layout";
 import { ReactElement, useEffect, useState } from "react";
 import Head from "next/head";
@@ -23,6 +23,7 @@ import {
   Button,
 } from "@chakra-ui/react";
 import { useRouter } from "next/router";
+import { withPageToken } from "../../components/auth0-utils";
 
 type BookingInviteType = components["schemas"]["BookingInvite"];
 type BookingType = components["schemas"]["Booking"];
@@ -136,21 +137,8 @@ BookingPage.getLayout = function getLayout(page: ReactElement) {
 };
 
 export const getServerSideProps = withPageAuthRequired({
-  getServerSideProps: async (ctx) => {
-    let token: string = "";
+  getServerSideProps: withPageToken(async (ctx, token) => {
     const id = ctx.query.id as string;
-    try {
-      const { accessToken } = await getAccessToken(ctx.req, ctx.res);
-      token = accessToken as string;
-    } catch (e) {
-      return {
-        redirect: {
-          destination: `/api/auth/login?returnTo=/booking/${id}`,
-          permanent: false,
-        },
-      };
-    }
-
     const { data } = await getBookingInvite(id, token);
 
     if (!data.id) {
@@ -164,7 +152,7 @@ export const getServerSideProps = withPageAuthRequired({
         invite: data,
       },
     };
-  },
+  }),
 });
 
 export default BookingPage;

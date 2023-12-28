@@ -114,7 +114,12 @@ class UserRepo(CommonModelRepo[UserSchema]):
 
     def recreate_index(self) -> None:
         queryset = User.objects.all()
+        docs: list[UserSchema] = []
+        chunk_size = 2500
         with ElasticMigration(self.elastic_service):
             for user in queryset:
                 result = self.get(id=user.id)
-                self.elastic_service.add(id=user.id, doc_data=result)
+                docs.append(result)
+                if len(docs) == chunk_size:
+                    self.elastic_service.bulk_add_docs(docs)
+                    docs = []

@@ -1,4 +1,5 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
+import { withApiAuthRequired } from "@auth0/nextjs-auth0";
+import { withApiRouteToken } from "../../../components/auth0-utils";
 
 export const updateAppointment = async (
   id: string,
@@ -33,21 +34,21 @@ export const getAppointment = async (id: string, accessToken: string) => {
   return { request, data };
 };
 
-export default withApiAuthRequired(async function products(req, res) {
-  const { accessToken } = await getAccessToken(req, res);
-  const id: string = (req.query.id as string) || "";
-  const token: string = accessToken || "";
-  if (req.method === "GET") {
-    const { request, data } = await getAppointment(id, token);
-    res.status(request.status).json(data);
-  }
+export default withApiAuthRequired(
+  withApiRouteToken(async function products(req, res, token) {
+    const id: string = (req.query.id as string) || "";
+    if (req.method === "GET") {
+      const { request, data } = await getAppointment(id, token);
+      res.status(request.status).json(data);
+    }
 
-  if (req.method === "PUT") {
-    const { request, data } = await updateAppointment(
-      id,
-      JSON.stringify(req.body),
-      token,
-    );
-    res.status(request.status).json(data);
-  }
-});
+    if (req.method === "PUT") {
+      const { request, data } = await updateAppointment(
+        id,
+        JSON.stringify(req.body),
+        token,
+      );
+      res.status(request.status).json(data);
+    }
+  }),
+);

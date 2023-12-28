@@ -1,5 +1,5 @@
 import type { NextPageWithLayout } from "./_app";
-import { withPageAuthRequired, getAccessToken } from "@auth0/nextjs-auth0";
+import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 import Layout from "../components/layout";
 import { ReactElement, useEffect, useState } from "react";
 import Head from "next/head";
@@ -27,6 +27,7 @@ import { getBookingOptions } from "./api/booking/search";
 import { getPatient } from "./api/patient/manage";
 import axios from "axios";
 import { useLoading } from "../components/state/loading";
+import { withPageToken } from "../components/auth0-utils";
 type AppointmentType = components["schemas"]["Appointment"];
 type BookedAppointmentType = components["schemas"]["Booking"];
 
@@ -217,19 +218,7 @@ AptsPage.getLayout = function getLayout(page: ReactElement) {
 };
 
 export const getServerSideProps = withPageAuthRequired({
-  getServerSideProps: async (ctx) => {
-    let token: string = "";
-    try {
-      const { accessToken } = await getAccessToken(ctx.req, ctx.res);
-      token = accessToken as string;
-    } catch (e) {
-      return {
-        redirect: {
-          destination: "/api/auth/login?returnTo=/appointments",
-          permanent: false,
-        },
-      };
-    }
+  getServerSideProps: withPageToken(async (ctx, token) => {
     const { data, request } = await getAppointments("page=1", token);
     const { data: patient } = await getPatient(token);
     const { data: bookings } = await getBookingOptions(
@@ -251,7 +240,7 @@ export const getServerSideProps = withPageAuthRequired({
         bookings: bookings.results,
       },
     };
-  },
+  }),
 });
 
 export default AptsPage;

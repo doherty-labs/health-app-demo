@@ -1,7 +1,7 @@
 import type { NextPageWithLayout } from "./_app";
-import { withPageAuthRequired, getAccessToken } from "@auth0/nextjs-auth0";
+import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 import Layout from "../components/layout";
-import { ReactElement, use, useEffect, useState } from "react";
+import { ReactElement, useEffect, useState } from "react";
 import Head from "next/head";
 import { components } from "../schemas/api-types";
 import { getPrescriptions } from "./api/prescription/all";
@@ -22,6 +22,7 @@ import {
 } from "@chakra-ui/react";
 import moment from "moment";
 import _ from "lodash";
+import { withPageToken } from "../components/auth0-utils";
 
 type PrescriptionType = components["schemas"]["Prescription"];
 
@@ -156,19 +157,7 @@ PrescriptionsPage.getLayout = function getLayout(page: ReactElement) {
 };
 
 export const getServerSideProps = withPageAuthRequired({
-  getServerSideProps: async (ctx) => {
-    let token: string = "";
-    try {
-      const { accessToken } = await getAccessToken(ctx.req, ctx.res);
-      token = accessToken as string;
-    } catch (e) {
-      return {
-        redirect: {
-          destination: "/api/auth/login?returnTo=/prescriptions",
-          permanent: false,
-        },
-      };
-    }
+  getServerSideProps: withPageToken(async (ctx, token) => {
     const { data, request } = await getPrescriptions("page=1", token);
 
     if (request.status !== 200) {
@@ -184,7 +173,7 @@ export const getServerSideProps = withPageAuthRequired({
         prescriptions: data.results,
       },
     };
-  },
+  }),
 });
 
 export default PrescriptionsPage;

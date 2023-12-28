@@ -1,4 +1,5 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
+import { withApiAuthRequired } from "@auth0/nextjs-auth0";
+import { withApiRouteToken } from "../../../../../components/auth0-utils";
 
 export const createBooking = async (
   body: any,
@@ -21,17 +22,17 @@ export const createBooking = async (
   return { request, data };
 };
 
-export default withApiAuthRequired(async function products(req, res) {
-  const { accessToken } = await getAccessToken(req, res);
-  const token: string = accessToken || "";
-  const id: string = (req.query.id as string) || "";
+export default withApiAuthRequired(
+  withApiRouteToken(async function products(req, res, token) {
+    const id: string = (req.query.id as string) || "";
 
-  if (req.method === "POST") {
-    const { request, data } = await createBooking(
-      JSON.stringify(req.body),
-      token,
-      id,
-    );
-    res.status(request.status).json(data);
-  }
-});
+    if (req.method === "POST") {
+      const { request, data } = await createBooking(
+        JSON.stringify(req.body),
+        token,
+        id,
+      );
+      res.status(request.status).json(data);
+    }
+  }),
+);

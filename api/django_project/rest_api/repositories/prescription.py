@@ -416,10 +416,15 @@ class PrescriptionRepo(CommonModelRepo[PrescriptionSchema]):
 
     def recreate_index(self) -> None:
         queryset = PrescriptionModel.objects.all()
+        docs: list[PrescriptionSchema] = []
+        chunk_size = 2500
         with ElasticMigration(self.elastic_service):
             for prescript in queryset:
                 result = self.get(id=prescript.id)
-                self.elastic_service.add(id=prescript.id, doc_data=result)
+                docs.append(result)
+                if len(docs) == chunk_size:
+                    self.elastic_service.bulk_add_docs(docs)
+                    docs = []
 
     def search(self, term: str, size: int = 10) -> list[PrescriptionSchema]:
         if size > 50:

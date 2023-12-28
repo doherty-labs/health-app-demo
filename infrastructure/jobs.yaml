@@ -1,0 +1,81 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: django-migration
+spec:
+  parallelism: 1
+  backoffLimit: 4
+  template:
+    spec:
+      terminationGracePeriodSeconds: 60
+      nodeSelector:
+        nodeType: general-purpose
+      imagePullSecrets:
+        - name: docker-cfg
+      containers:
+        - name: django-migration
+          image: DOCKER_REGISTRY_URL:DOCKER_VERSION
+          imagePullPolicy: IfNotPresent
+          command: ["python", "manage.py", "migrate"]
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "100M"
+            limits:
+              cpu: "500m"
+              memory: "1000M"
+# kubectl wait --for=condition=complete --timeout=600s jobs/django-migration
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: elastic-migration
+spec:
+  parallelism: 1
+  backoffLimit: 4
+  template:
+    spec:
+      terminationGracePeriodSeconds: 60
+      nodeSelector:
+        nodeType: general-purpose
+      imagePullSecrets:
+        - name: docker-cfg
+      containers:
+        - name: elastic-migration
+          image: DOCKER_REGISTRY_URL:DOCKER_VERSION
+          imagePullPolicy: IfNotPresent
+          command: ["python", "manage.py" "create_index"]
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "100M"
+            limits:
+              cpu: "500m"
+              memory: "1000M"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: elastic-full-reset
+spec:
+  parallelism: 1
+  backoffLimit: 4
+  template:
+    spec:
+      terminationGracePeriodSeconds: 60
+      nodeSelector:
+        nodeType: general-purpose
+      imagePullSecrets:
+        - name: docker-cfg
+      containers:
+        - name: elastic-full-reset
+          image: DOCKER_REGISTRY_URL:DOCKER_VERSION
+          imagePullPolicy: IfNotPresent
+          command: ["python", "manage.py" "reset_indexes"]
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "100M"
+            limits:
+              cpu: "500m"
+              memory: "1000M"

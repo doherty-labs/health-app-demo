@@ -1,4 +1,5 @@
-import { getAccessToken, withApiAuthRequired } from "@auth0/nextjs-auth0";
+import { withApiAuthRequired } from "@auth0/nextjs-auth0";
+import { withApiRouteToken } from "../../../../../components/auth0-utils";
 
 export const createPrescription = async (
   patient_id: string,
@@ -21,17 +22,16 @@ export const createPrescription = async (
   return { request, data };
 };
 
-export default withApiAuthRequired(async function products(req, res) {
-  const { accessToken } = await getAccessToken(req, res);
-  const patient_id: string = (req.query.patient_id as string) || "";
-  const token: string = accessToken || "";
-
-  if (req.method === "POST") {
-    const { request, data } = await createPrescription(
-      patient_id,
-      JSON.stringify(req.body),
-      token,
-    );
-    res.status(request.status).json(data);
-  }
-});
+export default withApiAuthRequired(
+  withApiRouteToken(async function products(req, res, token) {
+    const patient_id: string = (req.query.patient_id as string) || "";
+    if (req.method === "POST") {
+      const { request, data } = await createPrescription(
+        patient_id,
+        JSON.stringify(req.body),
+        token,
+      );
+      res.status(request.status).json(data);
+    }
+  }),
+);

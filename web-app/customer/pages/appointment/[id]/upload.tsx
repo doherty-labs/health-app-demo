@@ -1,5 +1,5 @@
 import type { NextPageWithLayout } from "../../_app";
-import { withPageAuthRequired, getAccessToken } from "@auth0/nextjs-auth0";
+import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 import Layout from "../../../components/layout";
 import { ReactElement, useEffect, useState } from "react";
 import Head from "next/head";
@@ -13,6 +13,7 @@ import { useRouter } from "next/router";
 import { getAppointmentById } from "../../api/appointment/[id]";
 import { AptCard } from "../../../components/book-apt/apt-card";
 import axios, { AxiosResponse } from "axios";
+import { withPageToken } from "../../../components/auth0-utils";
 type BookingType = components["schemas"]["Appointment"];
 interface Props extends BookingType {}
 
@@ -115,21 +116,8 @@ AptUploadPage.getLayout = function getLayout(page: ReactElement, props: any) {
 };
 
 export const getServerSideProps = withPageAuthRequired({
-  getServerSideProps: async (ctx) => {
+  getServerSideProps: withPageToken(async (ctx, token) => {
     const id = ctx.query.id as string;
-    let token: string = "";
-    try {
-      const { accessToken } = await getAccessToken(ctx.req, ctx.res);
-      token = accessToken as string;
-    } catch (e) {
-      return {
-        redirect: {
-          destination: `/api/auth/login?returnTo=/appointment/${id}/upload`,
-          permanent: false,
-        },
-      };
-    }
-
     const { data } = await getAppointmentById(id, token);
     if (!data.id) {
       return {
@@ -143,7 +131,7 @@ export const getServerSideProps = withPageAuthRequired({
         pageTitle,
       },
     };
-  },
+  }),
 });
 
 export default AptUploadPage;

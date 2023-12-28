@@ -1,5 +1,5 @@
 import type { NextPageWithLayout } from "./_app";
-import { withPageAuthRequired, getAccessToken } from "@auth0/nextjs-auth0";
+import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 import Layout from "../components/layout";
 import { ReactElement, useCallback, useEffect, useState } from "react";
 import { components } from "../schemas/api-types";
@@ -10,6 +10,7 @@ import { useKanbanLoading, useLoading } from "../state/loading";
 import { useRouter } from "next/router";
 import { getPrescriptionStates } from "./api/states/prescription";
 import { PrescriptionKanbanBoard } from "../components/kanban/prescription-board";
+import { withPageToken } from "../components/auth0-utils";
 
 type StatesType = components["schemas"]["States"];
 type PrescriptionType = components["schemas"]["Prescription"];
@@ -203,20 +204,7 @@ PrescriptionsGetPage.getLayout = function getLayout(page: ReactElement) {
 };
 
 export const getServerSideProps = withPageAuthRequired({
-  getServerSideProps: async (ctx) => {
-    let token: string = "";
-    try {
-      const { accessToken } = await getAccessToken(ctx.req, ctx.res);
-      token = accessToken as string;
-    } catch (e) {
-      return {
-        redirect: {
-          destination: `/api/auth/login?returnTo=/prescriptions`,
-          permanent: false,
-        },
-      };
-    }
-
+  getServerSideProps: withPageToken(async (ctx, token) => {
     const { data, request } = await getPrescriptionStates(token);
 
     if (request.status !== 200) {
@@ -234,7 +222,7 @@ export const getServerSideProps = withPageAuthRequired({
         states: data,
       },
     };
-  },
+  }),
 });
 
 export default PrescriptionsGetPage;

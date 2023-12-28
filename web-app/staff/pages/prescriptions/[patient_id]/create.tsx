@@ -1,5 +1,5 @@
 import type { NextPageWithLayout } from "../../_app";
-import { withPageAuthRequired, getAccessToken } from "@auth0/nextjs-auth0";
+import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 import Layout from "../../../components/layout";
 import { ReactElement } from "react";
 import Head from "next/head";
@@ -9,6 +9,7 @@ import { components } from "../../../schemas/api-types";
 import axios, { AxiosResponse } from "axios";
 import { useRouter } from "next/router";
 import { PrescriptionForm } from "../../../components/prescription/create";
+import { withPageToken } from "../../../components/auth0-utils";
 type PrescriptionType = components["schemas"]["Prescription"];
 
 interface CreatePrescriptionProps {
@@ -61,27 +62,14 @@ CreatePrescriptionPage.getLayout = function getLayout(page: ReactElement) {
 };
 
 export const getServerSideProps = withPageAuthRequired({
-  getServerSideProps: async (ctx) => {
+  getServerSideProps: withPageToken(async (ctx, token) => {
     const patient_id: string = (ctx.query.patient_id as string) || "";
-    let token: string = "";
-    try {
-      const { accessToken } = await getAccessToken(ctx.req, ctx.res);
-      token = accessToken as string;
-    } catch (e) {
-      return {
-        redirect: {
-          destination: `/api/auth/login?returnTo=/prescriptions/${patient_id}/create`,
-          permanent: false,
-        },
-      };
-    }
-
     return {
       props: {
         patient_id,
       },
     };
-  },
+  }),
 });
 
 export default CreatePrescriptionPage;

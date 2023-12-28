@@ -1,5 +1,5 @@
 import type { NextPageWithLayout } from "./_app";
-import { getAccessToken, withPageAuthRequired } from "@auth0/nextjs-auth0";
+import { withPageAuthRequired } from "@auth0/nextjs-auth0";
 import Layout from "../components/layout";
 import { ReactElement } from "react";
 import axios, { AxiosResponse } from "axios";
@@ -16,6 +16,7 @@ import {
 import { getPractice } from "./api/practice/[id]/manage";
 import { PracticeFormScreen } from "../components/practice/practice";
 import { getStaff } from "./api/staff/manage";
+import { withPageToken } from "../components/auth0-utils";
 
 type PracticeType = components["schemas"]["Practice"];
 interface Props extends PracticeType {
@@ -103,20 +104,7 @@ AddPracticePage.getLayout = function getLayout(page: ReactElement, props: any) {
 };
 
 export const getServerSideProps = withPageAuthRequired({
-  getServerSideProps: async (ctx) => {
-    let token: string = "";
-    try {
-      const { accessToken } = await getAccessToken(ctx.req, ctx.res);
-      token = accessToken as string;
-    } catch (e) {
-      return {
-        redirect: {
-          destination: `/api/auth/login?returnTo=/practice-listing`,
-          permanent: false,
-        },
-      };
-    }
-
+  getServerSideProps: withPageToken(async (ctx, token) => {
     const { data: user } = await getStaff(token);
     if (token && user) {
       const { data } = await getPractice(user.practice_id, token);
@@ -146,7 +134,7 @@ export const getServerSideProps = withPageAuthRequired({
     return {
       props: {},
     };
-  },
+  }),
 });
 
 export default AddPracticePage;

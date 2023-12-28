@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -e
 cd ./django
-python manage.py migrate
 rm -rf ./staticfiles
 python manage.py collectstatic --noinput
 
