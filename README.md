@@ -1,4 +1,6 @@
 # health-app-demo
+[YouTube Video Link](https://youtu.be/hZatMLtjqHs?si=TvjygjgwoAetpf8A)
+
 A healthcare app for booking general practitioner appointments.
 # Diagrams
 ![Screenshot 2023-11-18 at 15 10 38](https://github.com/doherty-labs/health-app-demo/assets/7571840/bb787349-72ed-422f-85a1-dc897e962cf8)
